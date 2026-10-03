@@ -1,0 +1,21 @@
+{
+  "short_name": "Salón Masai",
+  "name": "Salón Masai • Santuario de Belleza",
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#FAF8F5",
+  "theme_color": "#FAF8F5",
+  "display": "standalone",
+  "orientation": "portrait"
+}

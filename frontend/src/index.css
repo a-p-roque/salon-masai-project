@@ -1,0 +1,23 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-salon-primary: #9a3a57;
+  --color-salon-primary-container: #b9536f;
+  --color-salon-secondary: #7a580f;
+  --color-salon-bg: #fff8f8;
+  --color-salon-card: #ffffff;
+  --color-salon-surface-low: #fff0f3;
+  --color-salon-dark: #26171d;
+  --color-salon-muted: #554245;
+  --color-salon-border: #dac0c4;
+}
+
+body {
+  background-color: var(--color-salon-bg);
+  color: var(--color-salon-dark);
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
