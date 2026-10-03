@@ -35,10 +35,12 @@ router.post("/login", async (req, res) => {
       mensaje: "Autenticación exitosa",
       token,
       usuario: {
-        id: usuario.id,
-        nombre: usuario.name,
-        email: usuario.email,
-        role: usuario.role,
+        id: cliente.id,
+        nombre: cliente.name,
+        telefono: cliente.phone,
+        isFrequent: cliente.isFrequent,
+        points: cliente.loyalityPoints,
+        imageUrl: cliente.imageUrl,
       },
     });
   } catch (error) {

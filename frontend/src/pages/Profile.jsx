@@ -366,8 +366,7 @@ export default function Perfil() {
   const esClienteFrecuente =
     Boolean(user?.isFrequent) ||
     Boolean(user?.esFrecuente) ||
-    user?.tipo === 'FREQUENT' ||
-    user?.role === 'FREQUENT';
+    Boolean(user?.is_frequent);
 
   const ahora = new Date();
 
