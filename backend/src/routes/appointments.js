@@ -280,10 +280,35 @@ router.get("/disponibilidad", async (req, res) => {
     const slots = [];
     const stepMin = 30;
     let current = new Date(dayStart);
-    const ahoraStr = new Date().toLocaleString("en-US", {
+
+    // 🕒 Extracción segura de la hora local en México
+    const opcionesHora = {
       timeZone: "America/Mexico_City",
-    });
-    const ahora = new Date();
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hour12: false,
+    };
+    const partesTiempo = new Intl.DateTimeFormat(
+      "en-US",
+      opcionesHora,
+    ).formatToParts(new Date());
+
+    const horaLocal = parseInt(
+      partesTiempo.find((p) => p.type === "hour").value,
+      10,
+    );
+    const minutoLocal = parseInt(
+      partesTiempo.find((p) => p.type === "minute").value,
+      10,
+    );
+    const segundoLocal = parseInt(
+      partesTiempo.find((p) => p.type === "second").value,
+      10,
+    );
+
+    const ahora = new Date(targetDate);
+    ahora.setHours(horaLocal, minutoLocal, segundoLocal, 0);
 
     while (current.getTime() + duration * 60000 <= dayEnd.getTime()) {
       const slotStart = new Date(current);
