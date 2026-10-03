@@ -3,6 +3,10 @@ import { prisma } from "../lib/prisma.js";
 import { autenticarToken } from "../middlewares/auth.js";
 import rateLimit from "express-rate-limit";
 import { procesarReglasAutomatedCitas } from "../services/appointmentAutomation.js";
+import {
+  sendPushToCustomer,
+  sendPushToAdmins,
+} from "../services/pushService.js";
 
 const router = Router();
 
@@ -142,6 +146,22 @@ router.post("/", agendarLimiter, async (req, res) => {
       },
     });
 
+    // 🔔 1. Notificación a la clienta
+    if (finalCustomerId) {
+      sendPushToCustomer(finalCustomerId, {
+        title: "¡Reserva Registrada! 🌸",
+        body: `Tu cita para "${servicio.title}" quedó agendada. Por favor envía tu anticipo para confirmarla.`,
+        url: "/perfil",
+      });
+    }
+
+    // 🔔 2. Notificación a las Administradas
+    sendPushToAdmins({
+      title: "¡Nueva Cita Registrada! 👑",
+      body: `${nuevaCita.customer?.name || customerName} agendó "${servicio.title}" para el ${fechaInicioCita.toLocaleDateString("es-ES", { day: "numeric", month: "short" })}.`,
+      url: "/admin",
+    });
+
     res.status(201).json(nuevaCita);
   } catch (error) {
     console.error("Error al procesar cita:", error);
@@ -189,14 +209,9 @@ router.get("/disponibilidad", async (req, res) => {
       return res.status(400).json({ error: "La fecha es requerida." });
     }
 
-    // 1. Extraer la fecha limpia YYYY-MM-DD para evitar descalibres por zona horaria UTC
     const dateStr = fecha.split("T")[0];
     const [year, month, day] = dateStr.split("-").map(Number);
-
-    // Crear la fecha a las 00:00:00 en HORA LOCAL del servidor
     const targetDate = new Date(year, month - 1, day, 0, 0, 0, 0);
-
-    // Obtener día de la semana (0 = Domingo, 1 = Lunes, ..., 6 = Sábado)
     const dayOfWeek = targetDate.getDay();
 
     const businessHour = await prisma.businessHour.findUnique({
@@ -271,7 +286,6 @@ router.get("/disponibilidad", async (req, res) => {
       const slotStart = new Date(current);
       const slotEnd = new Date(current.getTime() + duration * 60000);
 
-      // Ocultar slots que falten menos de 60 minutos o ya transcurrieron
       const minutosFaltantes =
         (slotStart.getTime() - ahora.getTime()) / (1000 * 60);
 
@@ -383,7 +397,10 @@ router.get("/mis-citas", autenticarToken, async (req, res) => {
 router.patch("/:id/confirmar-clienta", autenticarToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const cita = await prisma.appointment.findUnique({ where: { id } });
+    const cita = await prisma.appointment.findUnique({
+      where: { id },
+      include: { customer: true, service: true },
+    });
 
     if (!cita) return res.status(404).json({ error: "Cita no encontrada." });
 
@@ -396,6 +413,14 @@ router.patch("/:id/confirmar-clienta", autenticarToken, async (req, res) => {
     const citaActualizada = await prisma.appointment.update({
       where: { id },
       data: { status: "CONFIRMED" },
+      include: { customer: true, service: true },
+    });
+
+    // 🔔 Notificar a la Administración que la clienta confirmó asistencia
+    sendPushToAdmins({
+      title: "¡Asistencia Confirmada! ✨",
+      body: `La clienta ${citaActualizada.customer?.name || "registrada"} confirmó su asistencia para "${citaActualizada.service?.title || "servicio"}".`,
+      url: "/admin",
     });
 
     res.json({
@@ -421,7 +446,7 @@ router.patch("/:id/reagendar", autenticarToken, async (req, res) => {
 
     const cita = await prisma.appointment.findUnique({
       where: { id },
-      include: { service: true },
+      include: { service: true, customer: true },
     });
 
     if (!cita) {
@@ -451,6 +476,22 @@ router.patch("/:id/reagendar", autenticarToken, async (req, res) => {
         service: true,
         customer: true,
       },
+    });
+
+    // 🔔 1. Notificar a la clienta
+    if (citaActualizada.customerId) {
+      sendPushToCustomer(citaActualizada.customerId, {
+        title: "¡Cita Reagendada! 🗓️",
+        body: `Tu cita para "${citaActualizada.service?.title || "tu ritual"}" fue movida con éxito.`,
+        url: "/perfil",
+      });
+    }
+
+    // 🔔 2. Notificar a las administradoras
+    sendPushToAdmins({
+      title: "Cita Reagendada 🗓️",
+      body: `${citaActualizada.customer?.name || "Una clienta"} reagendó su cita de "${citaActualizada.service?.title}" para el ${inicio.toLocaleDateString("es-ES", { day: "numeric", month: "short" })}.`,
+      url: "/admin",
     });
 
     res.json({ mensaje: "Cita reagendada con éxito.", cita: citaActualizada });
@@ -485,6 +526,15 @@ router.patch("/:id/anticipo", autenticarToken, async (req, res) => {
       },
     });
 
+    // 🔔 Notificar a la clienta cuando se valida su anticipo
+    if (citaActualizada.customerId && isPaid) {
+      sendPushToCustomer(citaActualizada.customerId, {
+        title: "¡Anticipo Confirmado! ✨",
+        body: `Tu lugar para "${citaActualizada.service?.title || "tu ritual"}" ya está garantizado. ¡Nos vemos pronto!`,
+        url: "/perfil",
+      });
+    }
+
     res.json({
       mensaje: isPaid
         ? "Anticipo validado y cita confirmada con éxito."
@@ -494,6 +544,39 @@ router.patch("/:id/anticipo", autenticarToken, async (req, res) => {
   } catch (error) {
     console.error("Error actualizando anticipo:", error);
     res.status(500).json({ error: "Error interno al actualizar el anticipo." });
+  }
+});
+
+// 9. CANCELAR CITA POR CLIENTA
+router.patch("/:id/cancelar", autenticarToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const cita = await prisma.appointment.findUnique({
+      where: { id },
+      include: { customer: true, service: true },
+    });
+
+    if (!cita) {
+      return res.status(404).json({ error: "Cita no encontrada." });
+    }
+
+    const citaCancelada = await prisma.appointment.update({
+      where: { id },
+      data: { status: "CANCELED" },
+    });
+
+    // 🔔 Notificar a la administración
+    sendPushToAdmins({
+      title: "⚠️ Cita Cancelada",
+      body: `${cita.customer?.name || "Una clienta"} canceló su cita para "${cita.service?.title || "el servicio"}".`,
+      url: "/admin",
+    });
+
+    res.json({ mensaje: "Cita cancelada con éxito.", cita: citaCancelada });
+  } catch (error) {
+    console.error("Error al cancelar cita:", error);
+    res.status(500).json({ error: "Error interno al cancelar la cita." });
   }
 });
 

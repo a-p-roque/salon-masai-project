@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import toast from 'react-hot-toast';
 import {
   Award,
@@ -24,6 +25,8 @@ import {
   Upload,
   AlertTriangle,
   Trash2,
+  Bell,
+  BellCheck,
 } from 'lucide-react';
 
 const formatDuration = (totalMinutes) => {
@@ -70,6 +73,10 @@ const getNext14Days = () => {
 export default function Perfil() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Módulo de Notificaciones Push
+  const { isSubscribed, requestAndSubscribe } =
+    usePushNotifications(user);
 
   const [citas, setCitas] = useState([]);
   const [favoriteServices, setFavoriteServices] = useState([]);
@@ -228,7 +235,6 @@ export default function Perfil() {
 
     setSaving(true);
     try {
-      // Extraer horas y minutos
       const timeParts = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)?/i);
       if (!timeParts) {
         toast.error('Formato de hora no válido.');
@@ -328,7 +334,6 @@ export default function Perfil() {
         response.data?.customer?.imageUrl;
 
       if (rawUrl) {
-        // Normalizar la URL para que no dependa de localhost hardcodeado
         const apiBase = api.defaults.baseURL
           ? api.defaults.baseURL.replace('/api', '')
           : '';
@@ -367,7 +372,6 @@ export default function Perfil() {
 
   if (!user) return null;
 
-  // Validación flexible para detectar si la usuaria es Socia VIP / Cliente Frecuente
   const esClienteFrecuente =
     Boolean(user?.isFrequent) ||
     Boolean(user?.esFrecuente) ||
@@ -410,13 +414,40 @@ export default function Perfil() {
           </div>
         </div>
 
-        <button
-          onClick={logout}
-          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-rose-50 text-rose-600 transition-colors hover:bg-rose-100"
-          title="Cerrar Sesión"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Botón de Notificaciones Push */}
+          <button
+            onClick={requestAndSubscribe}
+            className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-all active:scale-95 ${
+              isSubscribed
+                ? 'border border-emerald-300 bg-emerald-50 text-emerald-800 shadow-2xs'
+                : 'border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100'
+            }`}
+            title={
+              isSubscribed ? 'Notificaciones Activas' : 'Activar Notificaciones'
+            }
+          >
+            {isSubscribed ? (
+              <>
+                <BellCheck className="h-4 w-4 text-emerald-600" />
+                <span className="hidden sm:inline">Notificaciones ON</span>
+              </>
+            ) : (
+              <>
+                <Bell className="h-4 w-4 animate-bounce text-pink-600" />
+                <span>Activar Alertas</span>
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={logout}
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-rose-50 text-rose-600 transition-colors hover:bg-rose-100"
+            title="Cerrar Sesión"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </header>
 
       <main className="px-4 pt-4 md:px-8">
@@ -673,7 +704,6 @@ export default function Perfil() {
                           </span>
                         </div>
 
-                        {/* Banner condicional con Glow */}
                         {!estaValidado ? (
                           <div className="mt-3 rounded-2xl border border-amber-200/80 bg-amber-50/60 p-3 text-xs">
                             <div className="flex items-start gap-2">
@@ -717,9 +747,7 @@ export default function Perfil() {
                           </div>
                         )}
 
-                        {/* Botones de Control */}
                         <div className="mt-3.5 flex items-center justify-between border-t border-stone-100 pt-3">
-                          {/* Cancelar Cita (Ambas) */}
                           <button
                             onClick={() => handleOpenCancel(cita)}
                             className="flex cursor-pointer items-center gap-1 text-xs font-semibold text-rose-500 transition-colors hover:text-rose-700"
@@ -728,7 +756,6 @@ export default function Perfil() {
                             <span>Cancelar Cita</span>
                           </button>
 
-                          {/* Reagendar Cita (Habilitado para Socia VIP o si la cita está confirmada) */}
                           {(esClienteFrecuente || estaValidado) && (
                             <button
                               onClick={() => handleOpenReschedule(cita)}
@@ -802,7 +829,8 @@ export default function Perfil() {
         </div>
       </main>
 
-      {/* MODAL CANCELAR CITA */}
+      {/* MODALES MANTENIDOS */}
+      {/* Modal Cancelar */}
       {cancelModalOpen && selectedCitaToCancel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-sm rounded-3xl border border-stone-100 bg-white p-5 shadow-xl">
@@ -857,7 +885,7 @@ export default function Perfil() {
         </div>
       )}
 
-      {/* MODAL CAMBIAR FOTO DE PERFIL */}
+      {/* Modal Cambiar Foto */}
       {avatarModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-sm rounded-3xl border border-stone-100 bg-white p-5 shadow-xl">
@@ -923,7 +951,7 @@ export default function Perfil() {
         </div>
       )}
 
-      {/* MODAL DATOS SPEI */}
+      {/* Modal SPEI */}
       {speiModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-sm rounded-3xl border border-stone-100 bg-white p-5 shadow-xl">
@@ -989,7 +1017,7 @@ export default function Perfil() {
         </div>
       )}
 
-      {/* MODAL REAGENDAR CITA */}
+      {/* Modal Reagendar */}
       {rescheduleModalOpen && selectedCitaToReschedule && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-md rounded-3xl border border-stone-100 bg-white p-5 shadow-xl md:p-6">
@@ -1013,7 +1041,6 @@ export default function Perfil() {
                 Ritual: {selectedCitaToReschedule.service?.title}
               </p>
 
-              {/* Selector de Fecha */}
               <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
                 {availableDays.map((d) => (
                   <button
@@ -1036,7 +1063,6 @@ export default function Perfil() {
                 ))}
               </div>
 
-              {/* Slots de Horarios Disponibles */}
               <div>
                 <label className="mb-1 block text-[10px] font-bold tracking-wider text-stone-400 uppercase">
                   Horarios Disponibles para {selectedDayObj.fullLabel}

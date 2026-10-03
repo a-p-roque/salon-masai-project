@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import toast from 'react-hot-toast';
 import {
   Calendar as CalendarIcon,
@@ -24,12 +25,18 @@ import {
   DollarSign as DollarIcon,
   CheckCheck,
   Star,
+  Bell,
+  BellCheck,
 } from 'lucide-react';
 import { formatPhoneNumber, cleanPhoneNumber } from '../utils/formatters';
 
 export default function AdminAgenda() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Módulo de Notificaciones Push para la Administradora
+  const { isSubscribed, requestAndSubscribe } = usePushNotifications(user);
+
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [appointments, setAppointments] = useState([]);
   const [timeBlocks, setTimeBlocks] = useState([]);
@@ -158,7 +165,6 @@ export default function AdminAgenda() {
     setSelectedDate(newDate);
   };
 
-  // ACCIÓN ÚNICA: Marcar anticipo -> Confirma automáticamente y abre WhatsApp
   const handleToggleAdvanceAndConfirm = async (cita) => {
     const yaConfirmada = cita.status === 'CONFIRMED';
     const nuevoEstadoAnticipo = !yaConfirmada;
@@ -342,7 +348,6 @@ export default function AdminAgenda() {
     .filter((c) => c.advanceRetained)
     .reduce((acc, c) => acc + Number(c.advancePaymentAmount || 150), 0);
 
-  // Clasificación y Ordenamiento
   const ahora = new Date();
   const citasOrdenadas = [...appointments].sort(
     (a, b) => new Date(a.startTime) - new Date(b.startTime)
@@ -367,7 +372,6 @@ export default function AdminAgenda() {
       .toUpperCase();
   };
 
-  // Renderizado Limpio, Elegante y con GLOWS DINÁMICOS por Estatus
   const renderCitaCard = (cita, esPasada = false) => {
     const tieneNotasMedicas = Boolean(cita.customer?.medicalNotes);
     const esPendiente = cita.status === 'PENDING';
@@ -380,26 +384,21 @@ export default function AdminAgenda() {
 
     const fotoCliente = cita.customer?.imageUrl || cita.customer?.photo;
 
-    // Lógica para asignar las clases de Glow / Ring / Sombra
     let statusGlowClass =
       'border-stone-200/80 bg-white shadow-2xs hover:border-pink-200';
 
     if (!esPasada) {
       if (esPendiente) {
-        // Resplandor dorado/ámbar difuso
         statusGlowClass =
           'border-amber-300/80 bg-amber-50/20 shadow-[0_4px_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-300/60';
       } else if (esConfirmada) {
-        // Resplandor verde esmeralda difuso
         statusGlowClass =
           'border-emerald-300/80 bg-emerald-50/20 shadow-[0_4px_20px_rgba(16,185,129,0.15)] ring-1 ring-emerald-300/60';
       } else if (cita.status === 'CANCELED') {
-        // Resplandor rosa/rojo tenue
         statusGlowClass =
           'border-rose-300/80 bg-rose-50/20 shadow-[0_4px_15px_rgba(244,63,94,0.12)] ring-1 ring-rose-300/50';
       }
     } else {
-      // Pasadas / Concluidas sin resplandor
       statusGlowClass =
         'border-stone-200/60 bg-stone-50/50 opacity-70 shadow-none';
     }
@@ -421,10 +420,8 @@ export default function AdminAgenda() {
         <div
           className={`rounded-3xl border p-4 transition-all duration-300 md:p-5 ${statusGlowClass}`}
         >
-          {/* Header de la Tarjeta */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              {/* Avatar de la Clienta */}
               <div className="relative shrink-0">
                 {fotoCliente ? (
                   <img
@@ -438,7 +435,6 @@ export default function AdminAgenda() {
                   </div>
                 )}
 
-                {/* Botón de Estrella VIP */}
                 <button
                   onClick={() => handleToggleFrequent(cita.customer)}
                   className={`absolute -right-1 -bottom-1 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border shadow-2xs transition-transform active:scale-90 ${
@@ -458,7 +454,6 @@ export default function AdminAgenda() {
                 </button>
               </div>
 
-              {/* Nombre y Servicio */}
               <div className="min-w-0 flex-1">
                 <h4 className="truncate font-serif text-base leading-tight font-bold text-stone-800">
                   {cita.customer?.name}
@@ -469,7 +464,6 @@ export default function AdminAgenda() {
               </div>
             </div>
 
-            {/* Bloque Derecha: Hora & Badge de Estatus */}
             <div className="flex shrink-0 flex-col items-end gap-1">
               <div className="text-salon-primary flex items-center gap-1 rounded-xl border border-pink-200/60 bg-pink-50/80 px-2.5 py-0.5 text-xs font-bold">
                 <Clock className="h-3.5 w-3.5 text-pink-500" />
@@ -500,7 +494,6 @@ export default function AdminAgenda() {
             </div>
           </div>
 
-          {/* Precio y Fila de Acción */}
           <div className="mt-3.5 flex items-center justify-between border-t border-stone-100 pt-3">
             <span className="text-salon-primary text-xs font-bold md:text-sm">
               ${Number(cita.service?.price || 0).toFixed(2)} MXN
@@ -527,7 +520,6 @@ export default function AdminAgenda() {
                 </span>
               )}
 
-              {/* Acciones Secundarias (Finalizar / Cancelar) */}
               {cita.status !== 'CANCELED' && (
                 <div className="flex items-center gap-1">
                   {cita.status !== 'COMPLETED' && (
@@ -604,6 +596,33 @@ export default function AdminAgenda() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Botón Push para la Administradora */}
+          <button
+            onClick={requestAndSubscribe}
+            className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-all active:scale-95 ${
+              isSubscribed
+                ? 'border border-emerald-300 bg-emerald-50 text-emerald-800 shadow-2xs'
+                : 'border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100'
+            }`}
+            title={
+              isSubscribed
+                ? 'Notificaciones Admin Activas'
+                : 'Activar Notificaciones de Citas'
+            }
+          >
+            {isSubscribed ? (
+              <>
+                <BellCheck className="h-4 w-4 text-emerald-600" />
+                <span className="hidden sm:inline">Alertas Admin ON</span>
+              </>
+            ) : (
+              <>
+                <Bell className="h-4 w-4 animate-bounce text-pink-600" />
+                <span>Activar Alertas</span>
+              </>
+            )}
+          </button>
+
           <button
             onClick={logout}
             className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-rose-50 text-rose-600 transition-colors hover:bg-rose-100"
@@ -615,7 +634,6 @@ export default function AdminAgenda() {
       </header>
 
       <main className="px-4 pt-4 md:px-8">
-        {/* Fecha Actual & Botón Bloquear */}
         <div className="flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold tracking-widest text-stone-400 uppercase">
@@ -732,7 +750,7 @@ export default function AdminAgenda() {
           </div>
         </div>
 
-        {/* LISTADO DE AGENDA SEPARADO EN SECCIONES */}
+        {/* LISTADO DE AGENDA */}
         <div className="mt-6">
           {loading ? (
             <div className="flex justify-center py-12">
@@ -750,7 +768,6 @@ export default function AdminAgenda() {
             </div>
           ) : (
             <div className="flex flex-col gap-6">
-              {/* Bloqueos de Horario */}
               {timeBlocks.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <span className="text-[10px] font-bold tracking-wider text-stone-400 uppercase">
@@ -790,7 +807,6 @@ export default function AdminAgenda() {
                 </div>
               )}
 
-              {/* SECCIÓN 1: PRÓXIMAS CITAS (2 Columnas en Pantallas Grandes) */}
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <h3 className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-stone-400 uppercase">
@@ -810,7 +826,6 @@ export default function AdminAgenda() {
                 )}
               </div>
 
-              {/* SECCIÓN 2: HISTORIAL DEL DÍA */}
               {citasPasadas.length > 0 && (
                 <div className="flex flex-col gap-3 border-t border-stone-200/80 pt-5">
                   <div className="flex items-center justify-between">
@@ -970,7 +985,7 @@ export default function AdminAgenda() {
         </div>
       )}
 
-      {/* MODAL NUEVA CITA MANUAL MULTI-SERVICIO */}
+      {/* MODAL NUEVA CITA MANUAL */}
       {manualModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="no-scrollbar max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-3xl border border-stone-100 bg-white p-5 shadow-xl md:max-w-md md:p-6">
@@ -1138,7 +1153,7 @@ export default function AdminAgenda() {
         </div>
       )}
 
-      {/* Botón Flotante "Nueva Cita" */}
+      {/* Botón Flotante */}
       <button
         onClick={() => setManualModalOpen(true)}
         className="bg-salon-primary fixed right-5 bottom-20 z-30 flex cursor-pointer items-center gap-2 rounded-full px-5 py-3 text-xs font-bold text-white shadow-lg transition-all hover:bg-pink-600 active:scale-95"
@@ -1147,7 +1162,7 @@ export default function AdminAgenda() {
         <span>Nueva Cita</span>
       </button>
 
-      {/* Navegación Inferior Admin (Solo Móviles) */}
+      {/* Navegación Inferior Admin */}
       <nav className="fixed right-0 bottom-0 left-0 z-30 border-t border-stone-200/60 bg-white/95 py-2.5 shadow-lg backdrop-blur-md md:hidden">
         <div className="mx-auto flex max-w-md items-center justify-around">
           <button className="text-salon-primary flex cursor-pointer flex-col items-center">

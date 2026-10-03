@@ -13,6 +13,7 @@ import customerRoutes from "./routes/customers.js";
 import appointmentRoutes from "./routes/appointments.js";
 import timeBlocksRoutes from "./routes/timeBlocks.js";
 import businessHoursRoutes from "./routes/businessHours.js";
+import notificationRoutes from "./routes/notifications.js";
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.use("/api/clientes", customerRoutes);
 app.use("/api/citas", appointmentRoutes);
 app.use("/api/bloqueos", timeBlocksRoutes);
 app.use("/api/horarios-negocio", businessHoursRoutes);
+app.use("/api/notificaciones", notificationRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.get("/api/health", (req, res) => {

@@ -21,28 +21,30 @@ enum AppointmentStatus {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  name         String
-  passwordHash String
-  role         Role     @default(ADMIN)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                String             @id @default(uuid())
+  email             String             @unique
+  name              String
+  passwordHash      String
+  role              Role               @default(ADMIN)
+  pushSubscriptions PushSubscription[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
 
 model Customer {
-  id             String               @id @default(uuid())
-  phone          String               @unique
-  name           String
-  pinHash        String?
-  imageUrl       String?
-  medicalNotes   String?
-  isFrequent     Boolean              @default(false)              
+  id              String               @id @default(uuid())
+  phone           String               @unique
+  name            String
+  pinHash         String?
+  imageUrl        String?
+  medicalNotes    String?
+  isFrequent      Boolean              @default(false)              
   loyalityPoints Int                  @default(0)
-  appointments   Appointment[]
-  frequencies    ServiceFrecuencies[]
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  appointments    Appointment[]
+  frequencies     ServiceFrecuencies[]
+  pushSubscriptions PushSubscription[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 }
 
 model Service {
@@ -119,4 +121,20 @@ model BusinessHour {
   breakEnd   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model PushSubscription {
+  id         String    @id @default(uuid())
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
