@@ -280,6 +280,9 @@ router.get("/disponibilidad", async (req, res) => {
     const slots = [];
     const stepMin = 30;
     let current = new Date(dayStart);
+    const ahoraStr = new Date().toLocaleString("en-US", {
+      timeZone: "America/Mexico_City",
+    });
     const ahora = new Date();
 
     while (current.getTime() + duration * 60000 <= dayEnd.getTime()) {
