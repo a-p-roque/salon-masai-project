@@ -3,8 +3,8 @@ import dotenv from "dotenv";
 import express from "express";
 import cron from "node-cron";
 import { procesarReglasAutomatedCitas } from "./services/appointmentAutomation.js";
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from "path";
+import { fileURLToPath } from "url";
 
 import authRoutes from "./routes/auth.js";
 import authCustomerRoutes from "./routes/authCustomer.js";
@@ -27,7 +27,11 @@ cron.schedule("*/15 * * * *", async () => {
   await procesarReglasAutomatedCitas();
 });
 
-app.use(cors());
+app.use(
+  cors({
+    origin: ["https://salon-masai-project.vercel.app", "http://localhost:5173"],
+  }),
+);
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
@@ -37,7 +41,7 @@ app.use("/api/clientes", customerRoutes);
 app.use("/api/citas", appointmentRoutes);
 app.use("/api/bloqueos", timeBlocksRoutes);
 app.use("/api/horarios-negocio", businessHoursRoutes);
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.get("/api/health", (req, res) => {
   res.send("API activa y funcionando");
