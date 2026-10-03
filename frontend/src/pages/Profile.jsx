@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
-import { usePushNotifications } from '../hooks/usePushNotifications';
 import toast from 'react-hot-toast';
 import {
   Award,
@@ -25,8 +24,6 @@ import {
   Upload,
   AlertTriangle,
   Trash2,
-  Bell,
-  BellCheck,
 } from 'lucide-react';
 
 const formatDuration = (totalMinutes) => {
@@ -74,10 +71,6 @@ export default function Perfil() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Módulo de Notificaciones Push
-  const { isSubscribed, requestAndSubscribe } =
-    usePushNotifications(user);
-
   const [citas, setCitas] = useState([]);
   const [favoriteServices, setFavoriteServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +100,6 @@ export default function Perfil() {
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState('');
 
-  // Obtener la URL del avatar desde cualquier propiedad posible para evitar fallas
   const currentAvatar = user?.avatarUrl || user?.imageUrl;
 
   useEffect(() => {
@@ -156,7 +148,6 @@ export default function Perfil() {
     };
   }, [user]);
 
-  // Cargar slots disponibles para reagendar
   useEffect(() => {
     if (!rescheduleModalOpen || !selectedCitaToReschedule) return;
 
@@ -415,29 +406,11 @@ export default function Perfil() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Botón de Notificaciones Push */}
           <button
-            onClick={requestAndSubscribe}
-            className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-all active:scale-95 ${
-              isSubscribed
-                ? 'border border-emerald-300 bg-emerald-50 text-emerald-800 shadow-2xs'
-                : 'border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100'
-            }`}
-            title={
-              isSubscribed ? 'Notificaciones Activas' : 'Activar Notificaciones'
-            }
+            onClick={() => navigate('/catalogo')}
+            className="text-salon-primary border-salon-primary/30 flex h-9 items-center gap-1.5 rounded-full bg-pink-50 px-3 text-xs font-bold transition-all hover:bg-pink-100 active:scale-95"
           >
-            {isSubscribed ? (
-              <>
-                <BellCheck className="h-4 w-4 text-emerald-600" />
-                <span className="hidden sm:inline">Notificaciones ON</span>
-              </>
-            ) : (
-              <>
-                <Bell className="h-4 w-4 animate-bounce text-pink-600" />
-                <span>Activar Alertas</span>
-              </>
-            )}
+            <span>Ver Catálogo</span>
           </button>
 
           <button
@@ -461,7 +434,6 @@ export default function Perfil() {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="group relative">
-                    {/* Renderizado dinámico del Avatar */}
                     {currentAvatar ? (
                       <img
                         src={currentAvatar}
@@ -829,8 +801,7 @@ export default function Perfil() {
         </div>
       </main>
 
-      {/* MODALES MANTENIDOS */}
-      {/* Modal Cancelar */}
+      {/* MODALES */}
       {cancelModalOpen && selectedCitaToCancel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-sm rounded-3xl border border-stone-100 bg-white p-5 shadow-xl">
@@ -885,7 +856,6 @@ export default function Perfil() {
         </div>
       )}
 
-      {/* Modal Cambiar Foto */}
       {avatarModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-sm rounded-3xl border border-stone-100 bg-white p-5 shadow-xl">
@@ -951,7 +921,6 @@ export default function Perfil() {
         </div>
       )}
 
-      {/* Modal SPEI */}
       {speiModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-sm rounded-3xl border border-stone-100 bg-white p-5 shadow-xl">
@@ -1017,7 +986,6 @@ export default function Perfil() {
         </div>
       )}
 
-      {/* Modal Reagendar */}
       {rescheduleModalOpen && selectedCitaToReschedule && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-md rounded-3xl border border-stone-100 bg-white p-5 shadow-xl md:p-6">

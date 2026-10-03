@@ -459,6 +459,18 @@ router.patch("/:id/reagendar", autenticarToken, async (req, res) => {
       });
     }
 
+    // Validar regla de cliente frecuente o anticipo validado
+    const esClienteFrecuente = Boolean(cita.customer?.isFrequent);
+    const estaValidado =
+      Boolean(cita.advancePaid) || cita.status === "CONFIRMED";
+
+    if (!esClienteFrecuente && !estaValidado) {
+      return res.status(400).json({
+        error:
+          "Para reagendar requieres tener el anticipo validado o ser clienta VIP frecuente.",
+      });
+    }
+
     const inicio = new Date(newStartTime);
     const fin = new Date(
       inicio.getTime() + (cita.service?.durationMin || 60) * 60000,
@@ -470,7 +482,6 @@ router.patch("/:id/reagendar", autenticarToken, async (req, res) => {
         startTime: inicio,
         endTime: fin,
         hasRescheduled: true,
-        advancePaid: true,
       },
       include: {
         service: true,

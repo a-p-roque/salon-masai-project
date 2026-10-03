@@ -341,11 +341,15 @@ export default function AdminAgenda() {
   };
 
   const totalCobradoReal = appointments
-    .filter((c) => c.status === 'COMPLETED' || c.status === 'CONFIRMED')
+    .filter(
+      (c) =>
+        c.status === 'COMPLETED' ||
+        (c.status === 'CONFIRMED' && !c.advanceRetained)
+    )
     .reduce((acc, c) => acc + Number(c.service?.price || 0), 0);
 
   const totalAnticiposRetenidos = appointments
-    .filter((c) => c.advanceRetained)
+    .filter((c) => c.status === 'CANCELED' && c.advanceRetained)
     .reduce((acc, c) => acc + Number(c.advancePaymentAmount || 150), 0);
 
   const ahora = new Date();

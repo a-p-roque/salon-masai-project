@@ -14,9 +14,12 @@ import {
   ShieldCheck,
   Heart,
   Tag,
+  Bell,
+  BellCheck,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 const formatDuration = (totalMinutes) => {
   const hours = Math.floor(totalMinutes / 60);
@@ -29,6 +32,10 @@ const formatDuration = (totalMinutes) => {
 
 export default function Catalog() {
   const { user } = useAuth();
+
+  // Módulo de Notificaciones Push disponible directamente en el Catálogo
+  const { isSubscribed, requestAndSubscribe } = usePushNotifications(user);
+
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -185,6 +192,33 @@ export default function Catalog() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Botón de Alertas Push en el Header */}
+          <button
+            onClick={requestAndSubscribe}
+            className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-all active:scale-95 ${
+              isSubscribed
+                ? 'border border-emerald-300 bg-emerald-50 text-emerald-800 shadow-xs'
+                : 'border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100'
+            }`}
+            title={
+              isSubscribed
+                ? 'Notificaciones Activas'
+                : 'Activar Alertas de Citas'
+            }
+          >
+            {isSubscribed ? (
+              <>
+                <BellCheck className="h-4 w-4 text-emerald-600" />
+                <span className="hidden sm:inline">Alertas ON</span>
+              </>
+            ) : (
+              <>
+                <Bell className="h-4 w-4 animate-bounce text-pink-600" />
+                <span>Alertas</span>
+              </>
+            )}
+          </button>
+
           <button
             onClick={() =>
               cart.length > 0 && navigate('/checkout', { state: { cart } })
@@ -326,7 +360,7 @@ export default function Catalog() {
         ))}
       </div>
 
-      {/* 5. Lista de Servicios (Grid Responsive: 1 col en celular, 2 en Tablet, 3 en Desktop) */}
+      {/* 5. Lista de Servicios */}
       <div className="mx-4 mt-6 md:mx-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -449,7 +483,7 @@ export default function Catalog() {
         )}
       </div>
 
-      {/* 6. Infografía: ¿Cómo funciona tu reserva? */}
+      {/* 6. Infografía */}
       <div className="mx-4 mt-10 rounded-3xl border border-pink-200/60 bg-pink-100/50 p-6 md:mx-8">
         <h3 className="text-salon-dark font-serif text-base font-bold">
           ❓ ¿Cómo funciona tu reserva?
@@ -507,7 +541,7 @@ export default function Catalog() {
         </div>
       </div>
 
-      {/* 7. Floating Sticky Bottom Bar (Responsive Centrada) */}
+      {/* 7. Floating Sticky Bottom Bar */}
       {cart.length > 0 && (
         <div className="fixed right-0 bottom-0 left-0 z-30 p-4">
           <div className="mx-auto flex max-w-md items-center justify-between rounded-3xl border border-pink-200 bg-white/95 p-3.5 shadow-2xl backdrop-blur-md md:max-w-2xl lg:max-w-4xl">
