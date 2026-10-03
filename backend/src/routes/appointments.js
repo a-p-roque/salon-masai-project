@@ -289,6 +289,10 @@ router.get("/disponibilidad", async (req, res) => {
       const minutosFaltantes =
         (slotStart.getTime() - ahora.getTime()) / (1000 * 60);
 
+      console.log(
+        `Slot ${slotStart.toLocaleTimeString()}: Faltan ${minutosFaltantes.toFixed(0)} mins`,
+      );
+
       if (minutosFaltantes >= 60) {
         const colisionCita = citasExistentes.some((c) => {
           const cStart = new Date(c.startTime).getTime();
@@ -327,7 +331,15 @@ router.get("/disponibilidad", async (req, res) => {
               minute: "2-digit",
             }),
           );
+        } else {
+          console.log(
+            `❌ Colisión detectada en ${slotStart.toLocaleTimeString()}`,
+          );
         }
+      } else {
+        console.log(
+          `❌ Descartado por margen de 1 hora: ${slotStart.toLocaleTimeString()}`,
+        );
       }
 
       current = new Date(current.getTime() + stepMin * 60000);
