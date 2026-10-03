@@ -115,13 +115,27 @@ export default function Perfil() {
       if (!user?.id) return;
       setLoading(true);
       try {
-        const [citasRes, serviciosRes] = await Promise.all([
+        const [citasRes, serviciosRes, clienteRes] = await Promise.all([
           api.get('/citas/mis-citas'),
           api.get('/servicios'),
+          api.get(`/clientes/${user.id}`), // 👈 Consulta el estado fresco del cliente
         ]);
 
         if (isMounted) {
           setCitas(citasRes.data);
+
+          // Sincronizamos el usuario en localStorage con los datos más recientes de la BD
+          if (clienteRes.data) {
+            const usuarioActualizado = {
+              ...user,
+              isFrequent: clienteRes.data.isFrequent,
+              nombre: clienteRes.data.name,
+              telefono: clienteRes.data.phone,
+              points: clienteRes.data.loyaltyPoints,
+              imageUrl: clienteRes.data.imageUrl,
+            };
+            localStorage.setItem('user', JSON.stringify(usuarioActualizado));
+          }
 
           const savedFavIds = JSON.parse(
             localStorage.getItem(`masai_favs_${user.id}`) || '[]'
@@ -140,7 +154,7 @@ export default function Perfil() {
         if (isMounted) setLoading(false);
       }
     };
-
+    
     loadUserData();
 
     return () => {
