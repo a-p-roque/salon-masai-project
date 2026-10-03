@@ -348,9 +348,15 @@ export default function AdminAgenda() {
     )
     .reduce((acc, c) => acc + Number(c.service?.price || 0), 0);
 
-  const totalAnticiposRetenidos = appointments
+const totalAnticiposRetenidos = appointments
     .filter((c) => c.status === 'CANCELED' && c.advanceRetained)
-    .reduce((acc, c) => acc + Number(c.advancePaymentAmount || 150), 0);
+    .reduce((acc, c) => {
+      // Tomamos el advancePaymentAmount guardado, o calculamos el 20% del servicio como respaldo
+      const montoAnticipo = Number(c.advancePaymentAmount) > 0 
+        ? Number(c.advancePaymentAmount) 
+        : Number(c.service?.price || 0) * 0.2;
+      return acc + montoAnticipo;
+    }, 0);
 
   const ahora = new Date();
   const citasOrdenadas = [...appointments].sort(

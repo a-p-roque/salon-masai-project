@@ -112,7 +112,9 @@ router.post("/login", async (req, res) => {
         id: customer.id,
         nombre: customer.name,
         telefono: customer.phone,
-        loyaltyPoints: customer.loyaltyPoints,
+        isFrequent: customer.isFrequent,
+        points: customer.loyaltyPoints,
+        imageUrl: customer.imageUrl,
         rol: "CUSTOMER",
       },
     });
