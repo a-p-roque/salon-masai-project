@@ -728,7 +728,7 @@ export default function Perfil() {
                             <span>Cancelar Cita</span>
                           </button>
 
-                          {(esClienteFrecuente || estaValidado) && (
+                          {esClienteFrecuente && (
                             <button
                               onClick={() => handleOpenReschedule(cita)}
                               disabled={cita.hasRescheduled}

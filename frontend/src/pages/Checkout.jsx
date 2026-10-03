@@ -66,13 +66,12 @@ const getNext14Days = () => {
   return days;
 };
 
-// Datos configurables del Salón (preparado para conectar con la BD después)
 const SALON_INFO = {
   address: 'Av. Revolución 123, Col. Centro, Ciudad de México',
   bankName: 'BBVA Bancomer',
   accountHolder: 'Salón Masai Spa',
   clabe: '012180015489321099',
-  whatsappPhone: '525512345678', // Formato internacional sin símbolos
+  whatsappPhone: '525512345678',
 };
 
 export default function Checkout() {
@@ -80,19 +79,16 @@ export default function Checkout() {
   const location = useLocation();
   const { user } = useAuth();
 
-  // Wizard de Pasos: 1. Datos | 2. Horario | 3. Anticipo & Confirmación
   const [currentStep, setCurrentStep] = useState(1);
 
   const [cart, setCart] = useState(location.state?.cart || []);
   const [allServices, setAllServices] = useState([]);
 
-  // Formulario
   const [customerName, setCustomerName] = useState(user?.nombre || '');
   const [customerPhone, setCustomerPhone] = useState(
     user?.telefono ? formatPhoneNumber(user.telefono) : ''
   );
 
-  // Disponibilidad
   const [availableDays] = useState(getNext14Days());
   const [selectedDayObj, setSelectedDayObj] = useState(availableDays[0]);
   const [availableSlots, setAvailableSlots] = useState([]);
@@ -102,6 +98,7 @@ export default function Checkout() {
 
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [whatsappUrlReady, setWhatsappUrlReady] = useState('');
 
   useEffect(() => {
     if (!location.state?.cart || location.state.cart.length === 0) {
@@ -245,22 +242,16 @@ export default function Checkout() {
 
       await api.post('/citas', appointmentData);
 
-      // Crear mensaje automático para WhatsApp
       const servicesText = cart.map((s) => s.title).join(', ');
       const message = `Hola Salón Masai ✨, acabo de agendar una cita:\n\n👤 *Nombre:* ${customerName.trim()}\n💇‍♀️ *Servicio:* ${servicesText}\n📅 *Fecha:* ${selectedDayObj.fullLabel} a las ${selectedTime}\n💳 *Anticipo a transferir:* $${totalAdvance.toFixed(2)} MXN\n\nAdjunto mi comprobante de pago para validar la reserva.`;
 
       const whatsappUrl = `https://wa.me/${SALON_INFO.whatsappPhone}?text=${encodeURIComponent(message)}`;
 
+      setWhatsappUrlReady(whatsappUrl);
       toast.success(
-        '¡Cita registrada! Redirigiendo a WhatsApp para enviar tu comprobante...',
-        { duration: 4000, icon: '✨' }
+        '¡Cita registrada con éxito! Toca el botón para enviar tu comprobante.',
+        { duration: 5000, icon: '✨' }
       );
-
-      // Abrir WhatsApp en pestaña nueva o aplicación
-      setTimeout(() => {
-        window.open(whatsappUrl, '_blank');
-        navigate('/catalogo');
-      }, 1500);
     } catch (err) {
       console.error('Error al agendar:', err);
       toast.error(
@@ -275,7 +266,6 @@ export default function Checkout() {
 
   return (
     <div className="mx-auto min-h-screen max-w-md bg-[#FAF8F5] pb-28 shadow-xl transition-all md:max-w-4xl lg:max-w-5xl">
-      {/* Header Wizard */}
       <header className="sticky top-0 z-20 border-b border-stone-200/60 bg-[#FAF8F5]/90 px-4 py-3.5 backdrop-blur-md md:px-8">
         <div className="flex items-center justify-between">
           <button
@@ -307,7 +297,6 @@ export default function Checkout() {
           <div className="w-9"></div>
         </div>
 
-        {/* Progress Bar */}
         <div className="mt-3 grid grid-cols-3 gap-1 px-2 md:mx-auto md:max-w-md">
           <div
             className={`h-1 rounded-full transition-all ${
@@ -327,9 +316,7 @@ export default function Checkout() {
         </div>
       </header>
 
-      {/* Grid de 2 Columnas para Pantallas Grandes */}
       <div className="mt-4 grid grid-cols-1 items-start gap-6 px-4 md:grid-cols-12 md:px-8">
-        {/* COLUMNA IZQUIERDA: RESUMEN DE SERVICIOS & BENEFICIOS */}
         <div className="flex flex-col gap-4 md:col-span-5">
           <div className="rounded-3xl border border-stone-200/80 bg-white p-4 shadow-2xs md:p-6">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
@@ -369,14 +356,12 @@ export default function Checkout() {
               ))}
             </div>
 
-            {/* Widget Sugerencias (Venta Cruzada) */}
             <CrossSellWidget
               cart={cart}
               allServices={allServices}
               onToggleService={toggleServiceInCart}
             />
 
-            {/* Desglose Económico */}
             <div className="mt-4 border-t border-stone-100 pt-3 text-xs md:text-sm">
               <div className="flex justify-between text-stone-500">
                 <span>Duración estimada:</span>
@@ -408,7 +393,6 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* UBIACIÓN DEL SALÓN */}
           <div className="rounded-3xl border border-stone-200/80 bg-white p-4 shadow-2xs">
             <div className="flex items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-amber-200/60 bg-amber-50 text-amber-800">
@@ -425,7 +409,6 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* BENEFICIOS CLUB MASAI */}
           {!user ? (
             <div className="rounded-3xl border border-pink-200/60 bg-linear-to-r from-pink-50/80 via-white to-pink-50/80 p-4 shadow-2xs">
               <div className="flex items-start gap-3">
@@ -468,9 +451,7 @@ export default function Checkout() {
           )}
         </div>
 
-        {/* COLUMNA DERECHA: WIZARD INTERACTIVO PASO A PASO */}
         <div className="md:col-span-7">
-          {/* PASO 1: DATOS DE CONTACTO */}
           {currentStep === 1 && (
             <div className="rounded-3xl border border-stone-200/80 bg-white p-5 shadow-2xs md:p-6">
               <div className="flex items-center justify-between">
@@ -530,7 +511,6 @@ export default function Checkout() {
             </div>
           )}
 
-          {/* PASO 2: FECHA Y HORA */}
           {currentStep === 2 && (
             <div className="rounded-3xl border border-stone-200/80 bg-white p-5 shadow-2xs md:p-6">
               <div className="flex items-center justify-between">
@@ -539,7 +519,6 @@ export default function Checkout() {
                 </h2>
               </div>
 
-              {/* Selector de Días Horizontal */}
               <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-2">
                 {availableDays.map((d) => (
                   <button
@@ -561,7 +540,6 @@ export default function Checkout() {
                 ))}
               </div>
 
-              {/* Contenedor de Horarios Disponibles */}
               <div className="mt-4">
                 {loadingSlots ? (
                   <div className="flex justify-center py-8">
@@ -625,7 +603,6 @@ export default function Checkout() {
             </div>
           )}
 
-          {/* PASO 3: ANTICIPO Y CONFIRMACIÓN */}
           {currentStep === 3 && (
             <div className="rounded-3xl border border-amber-200/80 bg-linear-to-br from-amber-50/40 via-white to-amber-50/20 p-5 shadow-2xs md:p-6">
               <div className="flex items-center justify-between">
@@ -640,7 +617,6 @@ export default function Checkout() {
                 </span>
               </div>
 
-              {/* Información del SPEI */}
               <div className="mt-4 flex flex-col gap-3">
                 <div className="rounded-2xl border border-pink-200/80 bg-white p-4 shadow-2xs">
                   <div className="flex items-center justify-between">
@@ -700,7 +676,6 @@ export default function Checkout() {
                 </div>
               </div>
 
-              {/* Aviso del envío del comprobante */}
               <div className="mt-4 flex items-start gap-2.5 rounded-2xl border border-amber-200/80 bg-amber-50/70 p-3.5 text-xs text-amber-900">
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                 <p className="text-[11px] leading-snug font-medium md:text-xs">
@@ -710,7 +685,6 @@ export default function Checkout() {
                 </p>
               </div>
 
-              {/* Resumen Final de Cita */}
               <div className="mt-3 rounded-2xl border border-pink-200/80 bg-pink-50/60 p-3.5 text-xs md:text-sm">
                 <div className="flex items-center gap-2 font-bold text-pink-950">
                   <CalendarDays className="text-salon-primary h-4 w-4" />
@@ -723,18 +697,30 @@ export default function Checkout() {
                 </p>
               </div>
 
-              <button
-                onClick={handleConfirmAppointment}
-                disabled={loading}
-                className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 text-xs font-bold text-white shadow-2xs transition-all hover:bg-emerald-700 active:scale-98 disabled:opacity-50 md:text-sm"
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span>
-                  {loading
-                    ? 'Procesando...'
-                    : 'Solicitar Cita & Enviar Comprobante por WA'}
-                </span>
-              </button>
+              {whatsappUrlReady ? (
+                <a
+                  href={whatsappUrlReady}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-sm font-bold text-white shadow-lg transition-all hover:bg-emerald-700 active:scale-98"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  <span>Abrir WhatsApp para enviar comprobante 💬</span>
+                </a>
+              ) : (
+                <button
+                  onClick={handleConfirmAppointment}
+                  disabled={loading}
+                  className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 text-xs font-bold text-white shadow-2xs transition-all hover:bg-emerald-700 active:scale-98 disabled:opacity-50 md:text-sm"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span>
+                    {loading
+                      ? 'Procesando...'
+                      : 'Solicitar Cita & Enviar Comprobante por WA'}
+                  </span>
+                </button>
+              )}
             </div>
           )}
         </div>
