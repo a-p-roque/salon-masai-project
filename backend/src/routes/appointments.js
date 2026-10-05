@@ -200,7 +200,7 @@ router.get("/", autenticarToken, async (req, res) => {
   }
 });
 
-// 3. DISPONIBILIDAD DE SLOTS (Filtra pasados y margen de +1 hora)
+// 3. DISPONIBILIDAD DE SLOTS (Filtra pasados solo para hoy y respeta margen)
 router.get("/disponibilidad", async (req, res) => {
   try {
     const { fecha, duracionTotalMin } = req.query;
@@ -284,16 +284,29 @@ router.get("/disponibilidad", async (req, res) => {
     // 🕒 Extracción segura de la hora local en México
     const opcionesHora = {
       timeZone: "America/Mexico_City",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
       hour: "numeric",
       minute: "numeric",
       second: "numeric",
       hour12: false,
     };
-    const partesTiempo = new Intl.DateTimeFormat(
-      "en-US",
-      opcionesHora,
-    ).formatToParts(new Date());
+    const formatter = new Intl.DateTimeFormat("en-US", opcionesHora);
+    const partesTiempo = formatter.formatToParts(new Date());
 
+    const anioActual = parseInt(
+      partesTiempo.find((p) => p.type === "year").value,
+      10,
+    );
+    const mesActual = parseInt(
+      partesTiempo.find((p) => p.type === "month").value,
+      10,
+    );
+    const diaActual = parseInt(
+      partesTiempo.find((p) => p.type === "day").value,
+      10,
+    );
     const horaLocal = parseInt(
       partesTiempo.find((p) => p.type === "hour").value,
       10,
@@ -307,21 +320,25 @@ router.get("/disponibilidad", async (req, res) => {
       10,
     );
 
-    const ahora = new Date(targetDate);
+    const ahora = new Date();
     ahora.setHours(horaLocal, minutoLocal, segundoLocal, 0);
+
+    // Validar si el día consultado es HOY
+    const esHoy =
+      targetDate.getFullYear() === anioActual &&
+      targetDate.getMonth() + 1 === mesActual &&
+      targetDate.getDate() === diaActual;
 
     while (current.getTime() + duration * 60000 <= dayEnd.getTime()) {
       const slotStart = new Date(current);
       const slotEnd = new Date(current.getTime() + duration * 60000);
 
-      const minutosFaltantes =
-        (slotStart.getTime() - ahora.getTime()) / (1000 * 60);
+      // Si es hoy, exigimos el margen de 1 hora. Si es otro día, pasa libremente.
+      const minutosFaltantes = esHoy
+        ? (slotStart.getTime() - ahora.getTime()) / (1000 * 60)
+        : 999;
 
-      console.log(
-        `Slot ${slotStart.toLocaleTimeString()}: Faltan ${minutosFaltantes.toFixed(0)} mins`,
-      );
-
-      if (minutosFaltantes >= 60) {
+      if (!esHoy || minutosFaltantes >= 60) {
         const colisionCita = citasExistentes.some((c) => {
           const cStart = new Date(c.startTime).getTime();
           const cEnd = new Date(c.endTime).getTime();
@@ -359,15 +376,7 @@ router.get("/disponibilidad", async (req, res) => {
               minute: "2-digit",
             }),
           );
-        } else {
-          console.log(
-            `❌ Colisión detectada en ${slotStart.toLocaleTimeString()}`,
-          );
         }
-      } else {
-        console.log(
-          `❌ Descartado por margen de 1 hora: ${slotStart.toLocaleTimeString()}`,
-        );
       }
 
       current = new Date(current.getTime() + stepMin * 60000);
@@ -459,7 +468,7 @@ router.patch("/:id/confirmar-clienta", autenticarToken, async (req, res) => {
     // 🔔 Notificar a la Administración que la clienta confirmó asistencia
     sendPushToAdmins({
       title: "¡Asistencia Confirmada! ✨",
-      body: `La clienta ${citaActualizada.customer?.name || "registrada"} confirmó su asistencia para "${citaActualizada.service?.title || "servicio"}".`,
+      body: `La clienta ${citaActualizada.customer?.name || "registrada"} confirmó asistencia para "${citaActualizada.service?.title || "servicio"}".`,
       url: "/admin",
     });
 
