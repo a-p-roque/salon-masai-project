@@ -13,14 +13,6 @@ async function main() {
   await prisma.user.deleteMany();
 
   const passwordHash = await bcrypt.hash('Admin123!', 10);
-  const admin = await prisma.user.create({
-    data: {
-      email: 'admin@salon.com',
-      name: 'Fernanda',
-      passwordHash,
-      role: 'ADMIN',
-    },
-  });
 
   const listaServicios = [
     { title: 'Corte de cabello', durationMin: 60, price: 350.00, category: 'Cabello' },
